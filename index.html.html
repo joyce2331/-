@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大甲農會 - 農業代噴平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans pb-20">
+    <div id="app">
+        <!-- 頂部導航列 -->
+        <header class="bg-gradient-to-r from-green-700 to-emerald-800 text-white p-4 shadow-lg sticky top-0 z-50">
+            <div class="max-w-md mx-auto flex justify-between items-center">
+                <div class="flex items-center space-x-2" @click="activeTab = 'home'">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                    <div class="flex flex-col">
+                        <h1 class="text-lg font-bold leading-tight">大甲農會</h1>
+                        <p class="text-[10px] opacity-80 tracking-tighter text-emerald-100">農業代噴平台</p>
+                    </div>
+                </div>
+                
+                <button @click="toggleRole" class="text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full border border-white/40 transition-all flex items-center space-x-1">
+                    <span class="opacity-80">身份:</span>
+                    <span class="font-bold">{{ currentRole === 'farmer' ? '👨‍🌾 農友' : '🚁 飛手' }}</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- 主要內容 -->
+        <main class="max-w-md mx-auto p-4 space-y-6">
+            <!-- 首頁 -->
+            <div v-if="activeTab === 'home'" class="animate-fade-in space-y-6">
+                <div class="bg-green-100 rounded-2xl p-6 text-center border border-green-200 shadow-sm relative overflow-hidden">
+                    <div class="relative z-10">
+                        <h2 class="text-2xl font-bold text-green-800 mb-2">大甲好米，精準代噴</h2>
+                        <p class="text-green-700 mb-4">服務在地 1,208 位農友與 356 位專業飛手</p>
+                        <button @click="currentRole === 'farmer' ? activeTab = 'post' : activeTab = 'market'" class="bg-green-700 text-white px-6 py-2 rounded-full font-bold shadow-md hover:bg-green-800 active:scale-95 transition-transform">
+                            {{ currentRole === 'farmer' ? '立即發布需求' : '前往接單大廳' }}
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 text-center">
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                        <span class="text-3xl font-bold text-green-700">{{ openJobsCount }}</span>
+                        <span class="text-xs text-gray-500 block mt-1">媒合中案件</span>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                        <span class="text-3xl font-bold text-blue-700">85</span>
+                        <span class="text-xs text-gray-500 block mt-1">本月已完成</span>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+                    <h3 class="font-bold mb-3 flex items-center text-orange-600">
+                        <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                        農會公告
+                    </h3>
+                    <ul class="text-sm space-y-2 text-gray-600">
+                        <li>🎉 賀！本平台成功協助大甲稻作區完成春季防疫代噴。</li>
+                        <li>⚠️ 氣象提醒：下週二大甲地區預報有雨，請調整作業排程。</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 發布需求 (農友) -->
+            <div v-if="activeTab === 'post'" class="animate-fade-in bg-white rounded-xl shadow-md p-6">
+                <h2 class="text-xl font-bold mb-6 border-l-4 border-green-600 pl-3">發布噴灑需求</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">作物類型</label>
+                        <input v-model="form.cropType" type="text" placeholder="作物類型 (如: 水稻)" class="w-full bg-gray-50 border p-2 rounded-lg outline-none focus:border-green-600">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">面積 (分地)</label>
+                            <input v-model.number="form.areaSize" type="number" placeholder="面積 (分地)" class="w-full bg-gray-50 border p-2 rounded-lg outline-none focus:border-green-600">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">預算 (元)</label>
+                            <input v-model.number="form.price" type="number" placeholder="預算 (元)" class="w-full bg-gray-50 border p-2 rounded-lg outline-none focus:border-green-600">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">詳細地點</label>
+                        <input v-model="form.location" type="text" placeholder="大甲區某某路/地號" class="w-full bg-gray-50 border p-2 rounded-lg outline-none focus:border-green-600">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">預定日期</label>
+                        <input v-model="form.date" type="date" class="w-full bg-gray-50 border p-2 rounded-lg outline-none focus:border-green-600">
+                    </div>
+                    <button @click="submitJob" class="w-full bg-green-700 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-green-800 transition-colors">確認發布</button>
+                </div>
+            </div>
+
+            <!-- 接單大廳 (飛手) -->
+            <div v-if="activeTab === 'market'" class="animate-fade-in space-y-4">
+                <div v-for="job in openJobs" :key="job.id" class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-bold text-lg text-gray-800">{{ job.cropType }}代噴</h3>
+                        <span class="text-green-700 font-bold text-xl">NT$ {{ job.price }}</span>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-4 flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg>
+                        {{ job.location }} | 📏 {{ job.areaSize }}分地
+                    </p>
+                    <button @click="acceptJob(job.id)" class="w-full bg-emerald-700 text-white py-2 rounded-lg hover:bg-emerald-800 transition-colors">立即接單</button>
+                </div>
+                <div v-if="openJobs.length === 0" class="text-center py-10 text-gray-400 bg-white rounded-xl border border-dashed border-gray-200">目前暫無待接訂單</div>
+            </div>
+
+            <!-- 訂單 -->
+            <div v-if="activeTab === 'orders'" class="animate-fade-in space-y-4">
+                <h2 class="text-xl font-bold mb-4">服務紀錄</h2>
+                <div v-for="job in myJobs" :key="job.id" class="bg-white rounded-xl p-5 border-l-4 shadow-sm" :class="job.status === 'open' ? 'border-l-orange-400' : 'border-l-green-600'">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-gray-800">{{ job.cropType }}</span>
+                        <span class="text-[10px] px-2 py-1 rounded font-bold" :class="job.status === 'open' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'">
+                            {{ job.status === 'open' ? '媒合中' : (job.status === 'accepted' ? '作業中' : '已完成') }}
+                        </span>
+                    </div>
+                    <p class="text-xs text-gray-500 mb-2">{{ job.date }} · {{ job.location }}</p>
+                    <button v-if="currentRole === 'pilot' && job.status === 'accepted'" @click="completeJob(job.id)" class="mt-2 w-full bg-green-700 text-white py-1.5 rounded text-sm hover:bg-green-800">標記為完成</button>
+                </div>
+                <div v-if="myJobs.length === 0" class="text-center py-10 text-gray-400">尚無相關紀錄</div>
+            </div>
+        </main>
+
+        <!-- 底部導覽 -->
+        <nav class="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50 max-w-md mx-auto">
+            <button @click="activeTab = 'home'" :class="activeTab === 'home' ? 'text-green-700' : 'text-gray-400'" class="flex flex-col items-center">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                <span class="text-[10px] mt-0.5">首頁</span>
+            </button>
+            <button v-if="currentRole === 'farmer'" @click="activeTab = 'post'" :class="activeTab === 'post' ? 'text-green-700' : 'text-gray-400'" class="flex flex-col items-center">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span class="text-[10px] mt-0.5">發需求</span>
+            </button>
+            <button v-if="currentRole === 'pilot'" @click="activeTab = 'market'" :class="activeTab === 'market' ? 'text-green-700' : 'text-gray-400'" class="flex flex-col items-center">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                <span class="text-[10px] mt-0.5">接單大廳</span>
+            </button>
+            <button @click="activeTab = 'orders'" :class="activeTab === 'orders' ? 'text-green-700' : 'text-gray-400'" class="flex flex-col items-center">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                <span class="text-[10px] mt-0.5">服務紀錄</span>
+            </button>
+        </nav>
+
+        <!-- Toast 通知 -->
+        <transition name="fade">
+            <div v-if="toast" class="fixed top-20 left-1/2 -translate-x-1/2 bg-gray-800/90 text-white px-6 py-2 rounded-full shadow-2xl z-[100] text-sm flex items-center">
+                <svg class="w-4 h-4 text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                {{ toastMessage }}
+            </div>
+        </transition>
+    </div>
+
+    <script>
+        const { createApp, ref, computed } = Vue;
+        createApp({
+            setup() {
+                const activeTab = ref('home');
+                const currentRole = ref('farmer');
+                const toast = ref(false);
+                const toastMessage = ref('');
+                
+                // 模擬資料，預設一些大甲在地的範例
+                const jobs = ref([
+                    { id: 1, farmerName: '張老伯', cropType: '大甲芋頭', areaSize: 8, location: '大甲區江南里', date: '2024-02-10', price: 2800, status: 'open' },
+                    { id: 2, farmerName: '李先生', cropType: '台稉九號水稻', areaSize: 15, location: '大甲區文武里', date: '2024-02-12', price: 4500, status: 'open' }
+                ]);
+                
+                const form = ref({ cropType: '', areaSize: null, price: null, location: '', date: '' });
+
+                const toggleRole = () => {
+                    currentRole.value = currentRole.value === 'farmer' ? 'pilot' : 'farmer';
+                    showToast(`已切換為 ${currentRole.value === 'farmer' ? '農友' : '飛手'} 模式`);
+                };
+
+                const openJobs = computed(() => jobs.value.filter(j => j.status === 'open'));
+                const openJobsCount = computed(() => openJobs.value.length);
+                const myJobs = computed(() => jobs.value.filter(j => j.farmerName === '我' || j.pilotName === '我'));
+
+                const showToast = (msg) => {
+                    toastMessage.value = msg;
+                    toast.value = true;
+                    setTimeout(() => toast.value = false, 2000);
+                };
+
+                const submitJob = () => {
+                    if(!form.value.cropType || !form.value.location) {
+                        showToast('請填寫完整資訊');
+                        return;
+                    }
+                    jobs.value.unshift({ ...form.value, id: Date.now(), farmerName: '我', status: 'open' });
+                    showToast('需求發布成功！');
+                    activeTab.value = 'orders';
+                    // 重置表單
+                    form.value = { cropType: '', areaSize: null, price: null, location: '', date: '' };
+                };
+
+                const acceptJob = (id) => {
+                    const job = jobs.value.find(j => j.id === id);
+                    if(job) {
+                        job.status = 'accepted';
+                        job.pilotName = '我';
+                        showToast('成功接單！請聯繫農友');
+                        activeTab.value = 'orders';
+                    }
+                };
+
+                const completeJob = (id) => {
+                    const job = jobs.value.find(j => j.id === id);
+                    if(job) {
+                        job.status = 'completed';
+                        showToast('任務已完成，感謝您的辛勞！');
+                    }
+                };
+
+                return { activeTab, currentRole, jobs, form, toggleRole, openJobs, openJobsCount, myJobs, submitJob, acceptJob, completeJob, toast, toastMessage };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
